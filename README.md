@@ -1,35 +1,18 @@
-#Virtual Machine
+# Virtual Machine
 
-##内存
+## 内存
 
 +——————————+
-
 | stack | |
-
-| … v |
-
-| |
-
-| |
-
-| |
-
-| … ^ |
-
+| …  ...v |
+| …  ..^ |
 | heap | |
-
 +——————————+
-
 | bss segment |
-
 +——————————+
-
 | data segment |
-
 +——————————+
-
 | text segment |
-
 +——————————+
 
 1.text存放代码（指令）
