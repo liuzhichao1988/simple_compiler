@@ -23,6 +23,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		28A4D5FB20A42F5300272AC0 /* test_lex.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = test_lex.strings; sourceTree = "<group>"; };
 		28B2CCA520A2B6270025CA2D /* simple_compiler */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = simple_compiler; sourceTree = BUILT_PRODUCTS_DIR; };
 		28B2CCA820A2B6270025CA2D /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -58,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				28B2CCA820A2B6270025CA2D /* main.c */,
+				28A4D5FB20A42F5300272AC0 /* test_lex.strings */,
 			);
 			path = simple_compiler;
 			sourceTree = "<group>";

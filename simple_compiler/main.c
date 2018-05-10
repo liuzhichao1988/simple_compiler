@@ -15,7 +15,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
 int token;                      // current token
 char *src, *old_src;            // pointer to source code string
 int poolsize;                   // default size of test/data/stack
@@ -33,11 +32,11 @@ long *pc,                        // program counter, storing the next instructio
      ax;                         // general register
 
 // instructions */
-enum { LEA, IMM, JMP, CALL, JZ, JNZ, ENT, ADJ, LEV,LI, LC, SI, SC, PUSH, OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD, OPEN, READ, CLOS, PRTF, MALC, MSET, MCMP, EXIT};
+enum TestLexE{ LEA, IMM, JMP, CALL, JZ, JNZ, ENT, ADJ, LEV,LI, LC, SI, SC, PUSH, OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD, OPEN, READ, CLOS, PRTF, MALC, MSET, MCMP, EXIT};
 
 
 // tokens and classes (operators last and in precedence order) */
-enum {
+enum TestLexE2{
     Num = 128, Fun, Sys, Glo, Loc, Id,
     Char, Else, Enum, If, Int, Return, Sizeof, While,
     Assign, Cond, Lor, Lan, Or, Xor, And, Eq, Ne, Lt, Gt, Le, Ge, Shl, Shr, Add, Sub, Mul, Div, Mod, Inc, Dec, Brak,
@@ -452,10 +451,11 @@ int compile(int argc, const char **argv){
     return ret;
 }
 
+int TestEval(void);
+int TestLex(void);
 
 int main(int argc, const char * argv[]) {
-    
-    
+    return TestLex();
 }
 
 // *********** Test Code
@@ -480,7 +480,144 @@ int TestEval(){
     return 0;
 }
 
+
+#define ENUM_TO_NAME(x) case x: return(#x);
+char* enumToName(int i){
+    switch (i) {
+            ENUM_TO_NAME(LEA)
+            ENUM_TO_NAME(IMM)
+            ENUM_TO_NAME(JMP)
+            ENUM_TO_NAME(CALL)
+            ENUM_TO_NAME(JZ)
+            ENUM_TO_NAME(JNZ)
+            ENUM_TO_NAME(ENT)
+            ENUM_TO_NAME(ADJ)
+            ENUM_TO_NAME(LEV)
+            ENUM_TO_NAME(LI)
+            ENUM_TO_NAME(LC)
+            ENUM_TO_NAME(SI)
+            ENUM_TO_NAME(SC)
+            ENUM_TO_NAME(PUSH)
+            ENUM_TO_NAME(OR)
+            ENUM_TO_NAME(XOR)
+            ENUM_TO_NAME(AND)
+            ENUM_TO_NAME(EQ)
+            ENUM_TO_NAME(NE)
+            ENUM_TO_NAME(LT)
+            ENUM_TO_NAME(GT)
+            ENUM_TO_NAME(LE)
+            ENUM_TO_NAME(GE)
+            ENUM_TO_NAME(SHL)
+            ENUM_TO_NAME(SHR)
+            ENUM_TO_NAME(ADD)
+            ENUM_TO_NAME(SUB)
+            ENUM_TO_NAME(MUL)
+            ENUM_TO_NAME(DIV)
+            ENUM_TO_NAME(MOD)
+            ENUM_TO_NAME(OPEN)
+            ENUM_TO_NAME(READ)
+            ENUM_TO_NAME(CLOS)
+            ENUM_TO_NAME(PRTF)
+            ENUM_TO_NAME(MALC)
+            ENUM_TO_NAME(MSET)
+            ENUM_TO_NAME(MCMP)
+            ENUM_TO_NAME(EXIT)
+            ENUM_TO_NAME(Num)
+            ENUM_TO_NAME(Fun)
+            ENUM_TO_NAME(Sys)
+            ENUM_TO_NAME(Glo)
+            ENUM_TO_NAME(Loc)
+            ENUM_TO_NAME(Id)
+            ENUM_TO_NAME(Char)
+            ENUM_TO_NAME(Else)
+            ENUM_TO_NAME(Enum)
+            ENUM_TO_NAME(If)
+            ENUM_TO_NAME(Int)
+            ENUM_TO_NAME(Return)
+            ENUM_TO_NAME(Sizeof)
+            ENUM_TO_NAME(While)
+            ENUM_TO_NAME(Cond)
+            ENUM_TO_NAME(Assign)
+            ENUM_TO_NAME(Lor)
+            ENUM_TO_NAME(Lan)
+            ENUM_TO_NAME(Or)
+            ENUM_TO_NAME(Xor)
+            ENUM_TO_NAME(And)
+            ENUM_TO_NAME(Eq)
+            ENUM_TO_NAME(Ne)
+            ENUM_TO_NAME(Lt)
+            ENUM_TO_NAME(Gt)
+            ENUM_TO_NAME(Le)
+            ENUM_TO_NAME(Ge)
+            ENUM_TO_NAME(Shl)
+            ENUM_TO_NAME(Shr)
+            ENUM_TO_NAME(Add)
+            ENUM_TO_NAME(Sub)
+            ENUM_TO_NAME(Mul)
+            ENUM_TO_NAME(Div)
+            ENUM_TO_NAME(Mod)
+            ENUM_TO_NAME(Inc)
+            ENUM_TO_NAME(Dec)
+            ENUM_TO_NAME(Brak)
+    }
+    return "other";
+}
+
+
+
 int TestLex(){
+    
+    line = 1;
+    int fd;
+    int i;
+    char *argv = "/Users/neil/Documents/GitHub/Learning/compiler/simple_compiler/simple_compiler/test_lex.strings";
+    
+    if((fd = open(argv, O_RDONLY)) < 0){
+        printf("could not open(%s)\n", argv);
+        return -1;
+    }
+   
+    // allocate memory for virtual machine
+    if(!(text = old_text = malloc(poolsize))){
+        printf("could not malloc(%d) for text area\n", poolsize);
+        return -1;
+    }
+    
+    if(!(data = malloc(poolsize))){
+        printf("could not malloc (%d) for data area\n", poolsize);
+        return -1;
+    }
+    
+    if(!(stack = malloc(poolsize))){
+        printf("could not malloc(%d) for stack area\n", poolsize);
+        return -1;
+    }
+    
+    memset(text, 0, poolsize);
+    memset(data, 0, poolsize);
+    memset(stack, 0, poolsize);
+    
+    if(!(symbols = malloc(poolsize))){
+        
+    }
+    if(!(src = malloc(poolsize))){
+        printf("could not malloc(%d) for source area\n", poolsize);
+        return -1;
+    }
+    if((i = (int)read(fd, src, 2000)) <= 0){
+        printf("read() returned %d\n", i);
+        return -1;
+    }
+    src[i] = 0;
+    
+    while(*src){
+        next();
+        
+        printf("token:%s, line:%d\n", enumToName(token), line);
+    }
+    
+    printf("End....\n");
+    
     return 0;
 }
 

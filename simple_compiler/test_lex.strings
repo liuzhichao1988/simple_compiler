@@ -1,0 +1,27 @@
+int a = 1000;
+a = 4000;
+int bbc = 1000;
+bbc = 0x1a9d;
+// comments empty...
+a = 300 + 1999;
+a = 1888 - 12;
+a = 1 * 3;
+a = 4 / 2;
+if( a != 12){
+    printf("hello world");
+}
+
+char* c = "hello world";
+c = "another string";
+char t = 'h';
+int a[3] = { 1,2,3 };
+
+
+
+
+
+
+
+
+
+# first line, it means nothing....
