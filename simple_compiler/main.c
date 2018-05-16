@@ -42,7 +42,7 @@ enum TestLexE2{
     Assign, Cond, Lor, Lan, Or, Xor, And, Eq, Ne, Lt, Gt, Le, Ge, Shl, Shr, Add, Sub, Mul, Div, Mod, Inc, Dec, Brak,
 };
 
-int token_val;                   // value of current token (mainly for number)
+long token_val;                   // value of current token (mainly for number)
 long *current_id;                // current parsed ID
 long *symbols;                   // symbol table
 
@@ -135,6 +135,7 @@ void next(){
             last_pos = data;
             while(*src != 0 && *src != token){
                 token_val = *src++;
+                printf("%c(%d)\n", token_val, token_val);
                 if(token_val == '\\'){
                     // escape character
                     token_val = *src++;
@@ -144,14 +145,16 @@ void next(){
                 }
                 
                 if(token == '"'){
-                    *data++ = token_val;
+                    *data++ = (char)token_val;
                 }
             }
             
             src++;
             // meeting single character, return Num token
             if(token == '"'){
-                token_val = (int)last_pos;
+                token_val = (long)last_pos;
+                printf("the string starts:%d ----  %d\n", token_val, last_pos);
+//                *data++ = '\0';               // should i stop the string here ... ??? i should do it in express() instead of here...
             }else{
                 token = Num;
             }
@@ -296,7 +299,38 @@ void match(int tk){
 }
 
 void expression(int level){
-    // do nothing...
+    int *id;
+    int tmp;
+    int *addr;
+    
+    if(!token){
+        printf("%d: unexpected token EOF of expression", line);
+        exit(-1);
+    }
+    
+    if(token == Num){
+        match(Num);
+        
+        // emit code
+        *++text = IMM;
+        *++text = token_val;
+        expr_type = INT;
+    }
+    else if(token == '"'){
+        // emit code for dumplicate lines of string, for example
+        // "hello"
+        // "world"
+        *++text = IMM;
+        *++text = token_val;
+        
+        match('"');
+        while(token == '"'){
+            match('"');
+        }
+//        data = (char*)(((int)data + sizeof(int)) & (-sizeof(int)));     // test it when all done....
+        *data++ = '\0';
+        expr_type = PTR;
+    }
 }
 
 void enum_declaration(){
@@ -773,9 +807,12 @@ int compile(int argc, const char **argv){
 
 int TestEval(void);
 int TestLex(void);
+void testStr(void);
 
 int main(int argc, const char * argv[]) {
-    return TestLex();
+//    return TestLex();
+    testStr();
+    return 0;
 }
 
 // *********** Test Code
@@ -939,7 +976,50 @@ int TestLex(){
     return 0;
 }
 
-
+void testStr(){
+    src = "\"hello\""
+    "\"world\" 1 \"hi\"";
+    
+    data = malloc(100);
+    memset(data, 0, 100);
+    
+    char* start = data;
+    
+    next();
+    
+    match('"');
+    while(token == '"'){
+        match('"');
+    }
+    printf("befor data addr:%d  data:%d(%c)\n", data, *data, *data);
+    data = (char*)(((long)data + sizeof(char)) & (-sizeof(char)));
+//    *data ++ = '\0';
+    printf("after data addr:%d  data:%d(%c)\n", data, *data, *data);
+    
+    next();
+    
+    char* hi;
+    printf("Check token_val:%d\n", token_val);
+    long hi_addr = (long)start;
+    start = (char*)(long)hi_addr;
+    printf("check start:%d\n", start);
+    printf("%s\n", start);
+    
+//    hi_addr = (long)token_val;
+    hi = (char*)token_val;
+//    hi = start + 11;
+//    printf("%c\n", *hi);
+    printf("%d\n", hi);
+    printf("%s\n", hi);
+    printf("Check hi starts:%d\n", (start+11));
+    printf("%s\n", start+11);
+    
+    for(int i = 0; i < 20; ++i){
+        printf("%c(%d)\n", *(start + i), *(start+i));
+    }
+    
+    
+}
 
 
 
