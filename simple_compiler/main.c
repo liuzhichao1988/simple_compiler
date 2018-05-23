@@ -20,16 +20,16 @@ char *src, *old_src;            // pointer to source code string
 int poolsize;                   // default size of test/data/stack
 int line;                       // line number
 
-int *text,                      // text segment
-    *old_text,                  // for dump text segment
-    *stack;                     // stack
+long *text,                      // text segment
+*old_text,                  // for dump text segment
+*stack;                     // stack
 char *data;                     // data segment
 
 // virtual machine registers */
 long *pc,                        // program counter, storing the next instruction to execute
-     *bp,                        // base pointer, point to base of a function's memory on stack
-     *sp,                        // pointer register, point to top of the stack
-     ax;                         // general register
+*bp,                        // base pointer, point to base of a function's memory on stack
+*sp,                        // pointer register, point to top of the stack
+ax = 0;                         // general register
 
 // instructions */
 enum TestLexE{ LEA, IMM, JMP, CALL, JZ, JNZ, ENT, ADJ, LEV,LI, LC, SI, SC, PUSH, OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD, OPEN, READ, CLOS, PRTF, MALC, MSET, MCMP, EXIT};
@@ -154,11 +154,11 @@ void next(){
             // meeting single character, return Num token
             if(token == '"'){
                 token_val = (long)last_pos;
-//                *data++ = '\0';               // should i stop the string here ... ??? i should do it in express() instead of here...
+                //                *data++ = '\0';               // should i stop the string here ... ??? i should do it in express() instead of here...
             }else{
                 token = Num;
             }
-            
+//            printf("Find String:%s\n", last_pos);
             return;
         }
         else if(token == '/'){
@@ -289,13 +289,17 @@ void next(){
     }
     
 }
-
+char* enumToName(int);
 void match(int tk){
     if(token != tk){
         printf("expected %d(%c), got %d(%c)\n", tk, tk, token, token);
         exit(-1);
     }
+    else{
+//        printf("%d: now matched correct with:%d(%c)(%s)\n", line, tk, tk, enumToName(tk));
+    }
     next();
+//    printf("%d: match complete, next token = %d(%c)(%s)\n", line, token, token, enumToName(token));
 }
 
 void expression(int level){
@@ -321,13 +325,13 @@ void expression(int level){
         // "hello"
         // "world"
         *++text = IMM;
-        *++text = (int)token_val;
+        *++text = (long)token_val;
         
         match('"');
         while(token == '"'){
             match('"');
         }
-//        data = (char*)(((int)data + sizeof(int)) & (-sizeof(int)));     // test it when all done....
+        //        data = (char*)(((int)data + sizeof(int)) & (-sizeof(int)));     // test it when all done....
         *data++ = '\0';
         expr_type = PTR;
     }
@@ -354,7 +358,7 @@ void expression(int level){
         
         // emit code
         *++text = IMM;
-        *++text = (expr_type == CHAR) ? sizeof(char) : sizeof(int);
+        *++text = (expr_type == CHAR) ? sizeof(char) : sizeof(long);
         
         expr_type = INT;
     }
@@ -422,9 +426,10 @@ void expression(int level){
                 exit(-1);
             }
             
-            // emit code, default behaviour is to load the value ot the address which is stored in 'ax'
+            // emit code, default behaviour is to load the value of the address which is stored in 'ax'
             expr_type = (int)id[Type];
             *++text = (expr_type == Char) ? LC : LI;
+            
         }
     }
     else if(token == '('){
@@ -540,7 +545,8 @@ void expression(int level){
         *++text = (tmp == Inc) ? ADD : SUB;
         *++text = (expr_type == CHAR) ? SC : SI;
     }
-    else{
+
+    {
         while(token >= level){
             // parse token for binary operator and postfix operator
             tmp = expr_type;
@@ -756,21 +762,22 @@ void function_paramter(){
         }else if(token == Char){
             type = CHAR;
             match(Char);
+//            printf("Next is%s\n", enumToName(token));
         }
         
         // pointer type
-        while(token == '*'){
+        while(token == Mul){
             match(Mul);
             type = type + PTR;
         }
         
         // parameter name
         if(token != Id){
-            printf("%d: bad paramter declaration\n", line);
+            printf("%d: bad parameter declaration\n", line);
             exit(-1);
         }
         if(current_id[Class] == Loc){
-            printf("%d: duplicate paramter declaration\n", line);
+            printf("%d: duplicate parameter declaration\n", line);
             exit(-1);
         }
         
@@ -780,13 +787,18 @@ void function_paramter(){
         current_id[BClass] = current_id[Class]; current_id[Class] = Loc;
         current_id[BType] = current_id[Type]; current_id[Type] = type;
         current_id[BValue] = current_id[Value]; current_id[Value] = params++;   // index of current paramter
+//        printf("ID ----- %5.5s\n", (char*)current_id[Name]);
+        
+        if(token == ','){
+            match(',');
+        }
     }
     
     index_of_bp = params + 1;
 }
 
 void statement(){
-    int *a, *b;
+    long *a, *b;
     if(token == If){
         // if(...) <statement> [else <statement>]
         
@@ -855,7 +867,11 @@ void statement(){
         match('}');
     }
     else if(token == ';'){
-        // emptry statement
+        // empty statement
+        match(';');
+    }else{
+//        printf("Unknown Token:%d(%c)(%s)\n", token, token, enumToName(token));
+        expression(Assign);
         match(';');
     }
 }
@@ -877,7 +893,7 @@ void function_body(){
         while(token != ';'){
             type = basetype;
             while(token == Mul){
-                match(';');
+                match(Mul);
                 type = type + PTR;
             }
             
@@ -892,6 +908,7 @@ void function_body(){
                 printf("%d: dumplicate local declaration\n", line);
                 exit(-1);
             }
+            
             match(Id);
             
             //store the local variable
@@ -938,7 +955,7 @@ void funciton_declaration(){
     match(')');
     match('{');
     function_body();
-//    match('}');
+    //    match('}');
     
     current_id = symbols;
     while(current_id[Token]){
@@ -1011,13 +1028,13 @@ void global_declaration(){
         
         if(token == '('){
             current_id[Class] = Fun;
-            current_id[Value] = (int)(text + 1);    // the memory address of function
+            current_id[Value] = (long)(text + 1);    // the memory address of function
             funciton_declaration();
         }else{
             // variable declaration
             current_id[Class] = Glo;
-            current_id[Value] = (int)data;          // assign memory address
-            data = data + sizeof(int);
+            current_id[Value] = (long)data;          // assign memory address
+            data = data + sizeof(long);
         }
         
         if(token == ','){
@@ -1040,12 +1057,13 @@ int eval(){
     long op = 0;
     long *tmp;
     while(1){
-        op = *pc++;
+//        printf("Next Instruction:%s(%d)(%p)\n", enumToName(*pc), *pc, pc);
+        op = (int)*pc++;
         
         //  base instructions  */
-        if(op == IMM)       { ax = *pc++; }                         // load immediater value to ax
+        if(op == IMM)       { ax = *pc++;}                         // load immediater value to ax
         else if(op == LC)   { ax = *(char *)ax; }                   // load character to ax, address in ax
-        else if(op == LI)   { ax = *(int *)ax; }                    // load integer to ax, address in ax
+        else if(op == LI)   { ax = *(int *)ax; printf("Load intger:%d\n", ax); }                    // load integer to ax, address in ax
         else if(op == SC)   { ax = *(char*)*sp++ = ax; }            // save character to address, value in ax, address on stack  -- sp save the pointer, the pointed value change to ax's value, then stack pop...
         else if(op == SI)   { *(long*)*sp++ = ax; }                 // save integer to address, value in ax, address on stack
         else if(op == PUSH) { *--sp = ax; }                         // push the value of ax onto stack
@@ -1082,7 +1100,7 @@ int eval(){
         else if(op == SHR)  ax = *sp++ > ax;                        // shift right
         else if(op == ADD)  ax = *sp++ + ax;                        // ADD
         else if(op == SUB)  ax = *sp++ - ax;                        // subtract/minus
-        else if(op == MUL)  ax = *sp++ * ax;                        // multiply
+        else if(op == MUL)  {printf("attempt to mul:%d, %d\n", ax, *sp); ax = *sp++ * ax; printf("result:%d\n", ax); }                      // multiply
         else if(op == DIV)  ax = *sp++ / ax;                        // divide
         else if(op == MOD)  ax = *sp++ % ax;                        // MOD
         
@@ -1091,7 +1109,8 @@ int eval(){
         else if(op == EXIT) { printf("exit(%ld)\n", *sp); return (int)*sp; }
         else if(op == OPEN) { ax = open((char*)sp[1], (int)sp[0]); }
         else if(op == CLOS) { ax = close((int)*sp); }
-        else if(op == PRTF) { tmp = sp + (int)pc[1]; ax = printf((char*)tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-6], tmp[-6]); }
+        else if(op == PRTF) { tmp = sp + (long)pc[1];
+            ax = printf(tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]); }
         else if(op == MALC) { ax = (long)malloc(*sp); }
         else if(op == MSET) { ax = (long)memset((char*)sp[2], sp[1], *sp); }
         else if(op == MCMP) { ax = memcmp((char*)sp[2], (char*)sp[1], *sp); }
@@ -1109,79 +1128,94 @@ int eval(){
 
 
 int compile(int argc, const char **argv){
-    int i, fd;
+    long i;
+    int fd;
     long *tmp;
+    long *startText;
     
     argc--;
     argv++;
     
-    poolsize = 256*1024;
+    poolsize = 256 * 1024; // arbitrary size
     line = 1;
-    
-    if((fd = open(*argv, 0)) < 0){
-        printf("could not open(%s)\n", *argv);
-        return -1;
-    }
-    
-    if(!(src = old_src = malloc(poolsize))){
-        printf("could not malloc(%d) for source area\n", poolsize);
-        return -1;
-    }
-    
-    if((i = (int)read(fd, src, poolsize -1)) <= 0){
-        printf("read() returned %d\n", i);
-        return -1;
-    }
-    
-    src[i] = 0;
-    close(fd);
+//
+//    if ((fd = open("/Users/neil/Documents/GitHub/Learning/compiler/simple_compiler/testcode.c", 0)) < 0) {
+//        printf("could not open(%s)\n", *argv);
+//        return -1;
+//    }
     
     // allocate memory for virtual machine
-    if(!(text = old_text = malloc(poolsize))){
+    if (!(text = old_text = malloc(poolsize))) {
         printf("could not malloc(%d) for text area\n", poolsize);
         return -1;
     }
-    
-    if(!(data = malloc(poolsize))){
-        printf("could not malloc (%d) for data area\n", poolsize);
+    if (!(data = malloc(poolsize))) {
+        printf("could not malloc(%d) for data area\n", poolsize);
         return -1;
     }
-    
-    if(!(stack = malloc(poolsize))){
+    if (!(stack = malloc(poolsize))) {
         printf("could not malloc(%d) for stack area\n", poolsize);
+        return -1;
+    }
+    if (!(symbols = malloc(poolsize))) {
+        printf("could not malloc(%d) for symbol table\n", poolsize);
         return -1;
     }
     
     memset(text, 0, poolsize);
     memset(data, 0, poolsize);
     memset(stack, 0, poolsize);
-    
-    bp = sp = (long*)((long)(stack + poolsize));
+    memset(symbols, 0, poolsize);
+    startText = text;
+    bp = sp = (long *)((long)stack + poolsize);
     ax = 0;
     
     src = "char else enum if int return sizeof while "
-    "open read close printf malloc memset memcmp exit viod main";
+    "open read close printf malloc memset memcmp exit void main";
     
     // add keywords to symbol table
     i = Char;
-    while(i <= While){
+    while (i <= While) {
         next();
         current_id[Token] = i++;
     }
     
     // add library to symbol table
     i = OPEN;
-    while(i <= EXIT){
+    while (i <= EXIT) {
         next();
         current_id[Class] = Sys;
         current_id[Type] = INT;
         current_id[Value] = i++;
     }
     
-    next(); current_id[Token] = Sys;    // handle void type
-    next(); idmain = current_id;        // keep track of main
+    next(); current_id[Token] = Char; // handle void type
+    next(); idmain = current_id; // keep track of main
+    
+    // read the source file
+    if ((fd = open("/Users/neil/Documents/GitHub/Learning/compiler/simple_compiler/simple_compiler/test_lex.strings", 0)) < 0) {
+        printf("could not open(%s)\n", *argv);
+        return -1;
+    }
+    
+    if (!(src = old_src = malloc(poolsize))) {
+        printf("could not malloc(%d) for source area\n", poolsize);
+        return -1;
+    }
+    // read the source file
+    if ((i = read(fd, src, poolsize-1)) <= 0) {
+        printf("read() returned %ld\n", i);
+        return -1;
+    }
+    
+    src[i] = 0; // add EOF character
+    close(fd);
     
     program();
+    
+    for(int i = 0; i < 50; ++i){
+        printf("%ld(%s)\n", *(startText+i), enumToName(*(startText+i)));
+    }
     
     if (!(pc = (long *)idmain[Value])) {
         printf("main() not defined\n");
@@ -1196,12 +1230,7 @@ int compile(int argc, const char **argv){
     *--sp = (long)argv;
     *--sp = (long)tmp;
     
-    
-    int ret = eval();
-    
-    
-    
-    return ret;
+    return eval();
 }
 
 int TestEval(void);
@@ -1209,8 +1238,10 @@ int TestLex(void);
 void testStr(void);
 
 int main(int argc, const char * argv[]) {
-//    return TestLex();
-//    testStr();
+//        return TestLex();
+    //    testStr();
+//    char* dir = "/Users/neil/Documents/GitHub/Learning/compiler/simple_compiler/testcode.c";
+    compile(0, "hi");
     return 0;
 }
 
@@ -1332,7 +1363,7 @@ int TestLex(){
         printf("could not open(%s)\n", argv);
         return -1;
     }
-   
+    
     // allocate memory for virtual machine
     if(!(text = old_text = malloc(poolsize))){
         printf("could not malloc(%d) for text area\n", poolsize);
@@ -1344,7 +1375,7 @@ int TestLex(){
         return -1;
     }
     
-    if(!(stack = (int*)malloc(poolsize))){
+    if(!(stack = (long*)malloc(poolsize))){
         printf("could not malloc(%d) for stack area\n", poolsize);
         return -1;
     }
@@ -1378,51 +1409,52 @@ int TestLex(){
 }
 
 void testStr(){
-/*
-    src = "\"hello\""
-    "\"world\" 1 \"hi\"";
-    
-    data = malloc(100);
-    memset(data, 0, 100);
-    
-    char* start = data;
-    
-    next();
-    
-    match('"');
-    while(token == '"'){
-        match('"');
-    }
-    printf("befor data addr:%d  data:%d(%c)\n", data, *data, *data);
-    data = (char*)(((long)data + sizeof(char)) & (-sizeof(char)));
-//    *data ++ = '\0';
-    printf("after data addr:%d  data:%d(%c)\n", data, *data, *data);
-    
-    next();
-    
-    char* hi;
-    printf("Check token_val:%d\n", token_val);
-    long hi_addr = (long)start;
-    start = (char*)(long)hi_addr;
-    printf("check start:%d\n", start);
-    printf("%s\n", start);
-    
-//    hi_addr = (long)token_val;
-    hi = (char*)token_val;
-//    hi = start + 11;
-//    printf("%c\n", *hi);
-    printf("%d\n", hi);
-    printf("%s\n", hi);
-    printf("Check hi starts:%d\n", (start+11));
-    printf("%s\n", start+11);
-    
-    for(int i = 0; i < 20; ++i){
-        printf("%c(%d)\n", *(start + i), *(start+i));
-    }
- 
- */
+    /*
+     src = "\"hello\""
+     "\"world\" 1 \"hi\"";
+     
+     data = malloc(100);
+     memset(data, 0, 100);
+     
+     char* start = data;
+     
+     next();
+     
+     match('"');
+     while(token == '"'){
+     match('"');
+     }
+     printf("befor data addr:%d  data:%d(%c)\n", data, *data, *data);
+     data = (char*)(((long)data + sizeof(char)) & (-sizeof(char)));
+     //    *data ++ = '\0';
+     printf("after data addr:%d  data:%d(%c)\n", data, *data, *data);
+     
+     next();
+     
+     char* hi;
+     printf("Check token_val:%d\n", token_val);
+     long hi_addr = (long)start;
+     start = (char*)(long)hi_addr;
+     printf("check start:%d\n", start);
+     printf("%s\n", start);
+     
+     //    hi_addr = (long)token_val;
+     hi = (char*)token_val;
+     //    hi = start + 11;
+     //    printf("%c\n", *hi);
+     printf("%d\n", hi);
+     printf("%s\n", hi);
+     printf("Check hi starts:%d\n", (start+11));
+     printf("%s\n", start+11);
+     
+     for(int i = 0; i < 20; ++i){
+     printf("%c(%d)\n", *(start + i), *(start+i));
+     }
+     
+     */
     
 }
+
 
 
 

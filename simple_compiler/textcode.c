@@ -10,12 +10,13 @@
 
 int main(int argc, char** argv){
     
-    int a,b;//*c;
-    a = 100;
-    b = 20 * a;
+    int a = 100;
+    int b = a * 20;
     
-//    c = &a;
-    printf("%d,  %d\n", a, b);
-
-    return a;
+    int* c = &a;
+    printf("%p,  %d", c, b);
+    
+    
+    
+    return 0;
 }
