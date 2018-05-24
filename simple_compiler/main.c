@@ -59,11 +59,15 @@ int expr_type;              // the type of an expression
 int index_of_bp;            // index of top pointer on stack
 
 long *startText = NULL;
+long *startStack = NULL;
 
 int order(long* c){
     return (int)(c - startText);
 }
 
+int spOrder(long* s){
+    return (int)(s - startStack);
+}
 
 void next(){
     char *last_pos;
@@ -1066,7 +1070,7 @@ int eval(){
     long *tmp;
     while(1){
 //        printf("Next Instruction:%s(%d)(%p)\n", enumToName(*pc), *pc, pc);
-        printf("Current Addr:%d\n", order(pc));
+        printf("Current Addr:%d    Instruction:%s     sp value:%ld  sp order:%d\n", order(pc), enumToName((int)*pc), *sp, spOrder(sp));
         op = (int)*pc++;
         
         //  base instructions  */
@@ -1223,7 +1227,7 @@ int compile(int argc, const char **argv){
     
     program();
     
-    for(int i = 0; i < 80; ++i){
+    for(int i = 0; i < 55; ++i){
         printf("%ld(%s)          order:%d\n", *(startText+i), enumToName(*(startText+i)), i);
     }
     
@@ -1234,6 +1238,7 @@ int compile(int argc, const char **argv){
     
     // setup stack
     sp = (long *)((long)stack + poolsize);
+    startStack = sp;
     *--sp = EXIT; // call exit if main returns
     *--sp = PUSH; tmp = sp;
     *--sp = argc;
