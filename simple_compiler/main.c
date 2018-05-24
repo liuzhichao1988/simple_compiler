@@ -58,6 +58,13 @@ int expr_type;              // the type of an expression
 
 int index_of_bp;            // index of top pointer on stack
 
+long *startText = NULL;
+
+int order(long* c){
+    return (int)(c - startText);
+}
+
+
 void next(){
     char *last_pos;
     int hash;
@@ -389,11 +396,11 @@ void expression(int level){
             
             // emit code
             if(id[Class] == Sys){
-                *++text = (int)id[Value];
+                *++text = (long)id[Value];
             }
             else if(id[Class] == Fun){
                 *++text = CALL;
-                *++text = (int)id[Value];
+                *++text = (long)id[Value];
             }
             else {
                 printf("%d: bad function call\n", line);
@@ -1029,6 +1036,7 @@ void global_declaration(){
         if(token == '('){
             current_id[Class] = Fun;
             current_id[Value] = (long)(text + 1);    // the memory address of function
+            printf("func name:%5.11s, addr:%ld, order:%d\n", (char*)current_id[Name], (long)current_id[Value], (int)((long*)current_id[Value] - startText));
             funciton_declaration();
         }else{
             // variable declaration
@@ -1058,6 +1066,7 @@ int eval(){
     long *tmp;
     while(1){
 //        printf("Next Instruction:%s(%d)(%p)\n", enumToName(*pc), *pc, pc);
+        printf("Current Addr:%d\n", order(pc));
         op = (int)*pc++;
         
         //  base instructions  */
@@ -1073,14 +1082,14 @@ int eval(){
         
         
         //  call function instructions  */
-        else if(op == CALL) { *--sp = (long)(pc+1); pc = (long*)pc; }
+        else if(op == CALL) { *--sp = (long)(pc+1); pc = (long*)*pc; printf("Call Func to:%ld\n", pc);}
         
         // op                  pc
         // |                   |
         // CALL_INSTRUCTION    FUNCTION_LOCATION   NEXT_INSTRUCTION
         
         //else if(op == RET)  { pc = (long*)*sp++; }                  // return from sub function to next instruction of the super, but we use LEV instead of it
-        else if(op == ENT)  { *--sp = (int)bp; bp = sp; sp = sp - *pc++; }  // make new stack frame and save stack for local variable
+        else if(op == ENT)  { *--sp = (long)bp; bp = sp; sp = sp - *pc++; }  // make new stack frame and save stack for local variable
         else if(op == ADJ)  { sp = sp + *pc++; }                    // remove arguments from frame
         else if(op == LEV)  { sp = bp; bp = (long*)*sp++; pc = (long*)*sp++; }  //restore call frame and PC
         else if(op == LEA)  { ax = (long)(bp + *pc++); }            // load address for arguments
@@ -1110,7 +1119,7 @@ int eval(){
         else if(op == OPEN) { ax = open((char*)sp[1], (int)sp[0]); }
         else if(op == CLOS) { ax = close((int)*sp); }
         else if(op == PRTF) { tmp = sp + (long)pc[1];
-            ax = printf(tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]); }
+            ax = printf((char*)tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]); }
         else if(op == MALC) { ax = (long)malloc(*sp); }
         else if(op == MSET) { ax = (long)memset((char*)sp[2], sp[1], *sp); }
         else if(op == MCMP) { ax = memcmp((char*)sp[2], (char*)sp[1], *sp); }
@@ -1127,11 +1136,12 @@ int eval(){
 }
 
 
+
 int compile(int argc, const char **argv){
     long i;
     int fd;
     long *tmp;
-    long *startText;
+    
     
     argc--;
     argv++;
@@ -1213,8 +1223,8 @@ int compile(int argc, const char **argv){
     
     program();
     
-    for(int i = 0; i < 50; ++i){
-        printf("%ld(%s)\n", *(startText+i), enumToName(*(startText+i)));
+    for(int i = 0; i < 80; ++i){
+        printf("%ld(%s)          order:%d\n", *(startText+i), enumToName(*(startText+i)), i);
     }
     
     if (!(pc = (long *)idmain[Value])) {
